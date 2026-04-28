@@ -431,6 +431,91 @@ nav {
   color: var(--text-secondary);
 }
 
+/* --- Academy Section --- */
+.academy {
+  padding: 10rem 5%;
+  background: #050505;
+  position: relative;
+  overflow: hidden;
+}
+
+.academy-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6rem;
+  align-items: center;
+}
+
+.academy-content h2 {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.academy-content p {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+  max-width: 500px;
+}
+
+.academy-btn {
+  display: inline-block;
+  padding: 1.25rem 3.5rem;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  border-radius: 100px;
+  box-shadow: 0 10px 40px var(--accent-glow);
+  transition: all 0.4s ease;
+}
+
+.academy-btn:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 60px var(--accent-glow);
+  background: #fff;
+  color: #000;
+}
+
+.academy-visual {
+  position: relative;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.blueprint-grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
+}
+
+.blueprint-circle {
+  width: 200px;
+  height: 200px;
+  border: 2px dashed var(--accent);
+  border-radius: 50%;
+  animation: rotate 20s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* --- Contact --- */
 .contact {
   padding: 10rem 5%;

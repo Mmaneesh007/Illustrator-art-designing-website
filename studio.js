@@ -164,8 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.addEventListener('click', () => {
         if (confirm('Clear all vector objects?')) {
             canvas.clear();
-            canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
-            autoSave();
+            canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
+            localStorage.removeItem('calqube_pro_save');
+            saveStatus.innerText = 'Canvas Cleared';
+            setTimeout(() => { saveStatus.innerText = 'Saved'; }, 2000);
         }
     });
 

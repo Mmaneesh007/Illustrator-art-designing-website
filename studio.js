@@ -21,13 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Responsive Canvas ---
     function resizeCanvas() {
         const container = document.querySelector('.canvas-container');
+        const rect = container.getBoundingClientRect();
         canvas.setDimensions({
-            width: container.clientWidth - 40,
-            height: container.clientHeight - 40
+            width: rect.width - 40,
+            height: rect.height - 40
         });
-        canvas.renderAll();
+        canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
     }
-    resizeCanvas();
+    
+    // Safety delay to ensure container is rendered
+    setTimeout(() => {
+        resizeCanvas();
+        canvas.renderAll();
+    }, 100);
+
     window.addEventListener('resize', resizeCanvas);
 
     // --- Auto-Save Loading ---
@@ -108,9 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shape) {
             canvas.add(shape);
             canvas.setActiveObject(shape);
-            // Switch back to select after adding
-            // currentTool = 'select';
-            // updateToolMode();
+            canvas.renderAll();
         }
     }
 

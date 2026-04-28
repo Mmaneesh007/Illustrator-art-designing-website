@@ -20,20 +20,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Responsive Canvas ---
     function resizeCanvas() {
-        const container = document.querySelector('.canvas-container');
+        const container = document.querySelector('.studio-canvas-wrapper');
         const rect = container.getBoundingClientRect();
+        
         canvas.setDimensions({
-            width: rect.width - 40,
-            height: rect.height - 40
+            width: rect.width - 60,
+            height: rect.height - 60
         });
-        canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
+        
+        canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
     }
     
     // Safety delay to ensure container is rendered
     setTimeout(() => {
         resizeCanvas();
+        // Add a placeholder object to test visibility
+        addShape('rect');
         canvas.renderAll();
-    }, 100);
+    }, 500);
 
     window.addEventListener('resize', resizeCanvas);
 

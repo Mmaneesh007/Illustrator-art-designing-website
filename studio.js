@@ -162,13 +162,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Actions ---
     clearBtn.addEventListener('click', () => {
-        if (confirm('Clear all vector objects?')) {
-            canvas.clear();
-            canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
-            localStorage.removeItem('calqube_pro_save');
-            saveStatus.innerText = 'Canvas Cleared';
-            setTimeout(() => { saveStatus.innerText = 'Saved'; }, 2000);
-        }
+        // Direct Power-Clear (No blocker)
+        canvas.clear();
+        canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
+        localStorage.removeItem('calqube_pro_save');
+        
+        // Visual Feedback
+        clearBtn.style.background = '#ef4444'; // Red Pulse
+        saveStatus.innerText = 'Engine Reset Successful';
+        
+        setTimeout(() => { 
+            clearBtn.style.background = ''; 
+            saveStatus.innerText = 'Saved'; 
+        }, 1000);
     });
 
     downloadBtn.addEventListener('click', () => {

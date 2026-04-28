@@ -3,37 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalQube Studio | Neo-Paint Engine</title>
+    <title>CalQube Pro | Vector Synthesis Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="studio.css">
+    <!-- Fabric.js for Illustrator/Figma Level Vector Control -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 </head>
 <body class="studio-body">
 
     <nav class="studio-nav">
-        <div class="logo">CALQUBE <span class="badge">STUDIO</span></div>
+        <div class="logo">CALQUBE <span class="badge">PRO</span></div>
         <div class="controls-top">
             <div class="control-group">
-                <label>Size</label>
-                <input type="range" id="brush-size" min="1" max="100" value="5">
-            </div>
-            <div class="control-group">
-                <label>Opacity</label>
-                <input type="range" id="brush-opacity" min="1" max="100" value="100">
+                <label>Stroke</label>
+                <input type="range" id="brush-size" min="1" max="100" value="2">
             </div>
             <div class="color-picker-wrapper">
                 <input type="color" id="color-picker" value="#3b82f6">
             </div>
         </div>
         <div class="nav-actions">
+            <button id="to-front" class="btn-secondary">Bring Front</button>
+            <button id="to-back" class="btn-secondary">Send Back</button>
             <button id="clear-canvas" class="btn-secondary">Clear</button>
-            <button id="download-btn" class="btn-primary">Export</button>
-            <a href="index.html" class="btn-back">Back to Site</a>
+            <button id="download-btn" class="btn-primary">Export PNG</button>
+            <a href="index.html" class="btn-back">Exit</a>
         </div>
     </nav>
 
     <aside class="tool-sidebar">
-        <button class="tool-btn active" data-tool="brush" title="Brush">
+        <button class="tool-btn active" data-tool="select" title="Select (V)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+        </button>
+        <button class="tool-btn" data-tool="pen" title="Pen (P)">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l5 5"/></svg>
         </button>
         <button class="tool-btn" data-tool="eraser" title="Eraser">

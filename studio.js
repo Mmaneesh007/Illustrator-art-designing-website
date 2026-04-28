@@ -1,133 +1,174 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('main-canvas');
-    const ctx = canvas.getContext('2d');
+    // --- Initialize Fabric.js Vector Engine ---
+    const canvas = new fabric.Canvas('main-canvas', {
+        backgroundColor: '#111',
+        selection: true,
+        preserveObjectStacking: true
+    });
+
     const brushSize = document.getElementById('brush-size');
-    const brushOpacity = document.getElementById('brush-opacity');
     const colorPicker = document.getElementById('color-picker');
     const toolBtns = document.querySelectorAll('.tool-btn');
     const clearBtn = document.getElementById('clear-canvas');
     const downloadBtn = document.getElementById('download-btn');
+    const toFrontBtn = document.getElementById('to-front');
+    const toBackBtn = document.getElementById('to-back');
     const toolStatus = document.getElementById('tool-status');
     const saveStatus = document.getElementById('save-status');
 
-    let isDrawing = false;
-    let currentTool = 'brush';
-    let startX, startY;
-    let snapshot;
+    let currentTool = 'select';
 
-    // --- Initial Setup ---
-    function initCanvas() {
+    // --- Responsive Canvas ---
+    function resizeCanvas() {
         const container = document.querySelector('.canvas-container');
-        canvas.width = container.clientWidth - 100;
-        canvas.height = container.clientHeight - 40;
-        
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
-        // Fill background
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        canvas.setDimensions({
+            width: container.clientWidth - 40,
+            height: container.clientHeight - 40
+        });
+        canvas.renderAll();
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
-        // Load Auto-save
-        const savedData = localStorage.getItem('calqube_studio_save');
-        if (savedData) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0);
-            img.src = savedData;
-        }
+    // --- Auto-Save Loading ---
+    const savedJSON = localStorage.getItem('calqube_pro_save');
+    if (savedJSON) {
+        canvas.loadFromJSON(savedJSON, canvas.renderAll.bind(canvas));
     }
 
-    initCanvas();
-    window.addEventListener('resize', () => {
-        // Warning: Resizing clears canvas in standard implementation
-        // For Elite, we usually want to persist data, but for MVP we re-init
-    });
-
-    // --- Tool Logic ---
+    // --- Tool Selection Logic ---
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelector('.tool-btn.active').classList.remove('active');
             btn.classList.add('active');
             currentTool = btn.dataset.tool;
-            toolStatus.innerText = `${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)} Active`;
+            updateToolMode();
         });
     });
 
-    // --- Drawing Engine ---
-    function startDraw(e) {
-        isDrawing = true;
-        startX = e.offsetX;
-        startY = e.offsetY;
-        ctx.beginPath();
-        ctx.lineWidth = brushSize.value;
-        ctx.strokeStyle = colorPicker.value;
-        ctx.globalAlpha = brushOpacity.value / 100;
-        
-        // Snapshot for shapes
-        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        if (currentTool === 'brush') {
-            ctx.moveTo(startX, startY);
+    function updateToolMode() {
+        canvas.isDrawingMode = false;
+        canvas.selection = false;
+        toolStatus.innerText = `${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)} Mode`;
+
+        switch(currentTool) {
+            case 'select':
+                canvas.selection = true;
+                canvas.forEachObject(obj => obj.selectable = obj.evented = true);
+                break;
+            case 'pen':
+                canvas.isDrawingMode = true;
+                canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                canvas.freeDrawingBrush.width = parseInt(brushSize.value);
+                canvas.freeDrawingBrush.color = colorPicker.value;
+                break;
+            case 'eraser':
+                // Eraser in Vector is often implemented as a white/bg-colored brush 
+                // or by deleting selected objects. For UX, we'll delete selected.
+                const activeObjects = canvas.getActiveObjects();
+                if (activeObjects.length) {
+                    canvas.discardActiveObject();
+                    canvas.remove(...activeObjects);
+                }
+                break;
+            case 'circle':
+                addShape('circle');
+                break;
+            case 'rect':
+                addShape('rect');
+                break;
         }
     }
 
-    function drawing(e) {
-        if (!isDrawing) return;
-        
-        if (currentTool === 'brush' || currentTool === 'eraser') {
-            if (currentTool === 'eraser') {
-                ctx.strokeStyle = '#111';
-            }
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.stroke();
-        } else {
-            // Shapes
-            ctx.putImageData(snapshot, 0, 0);
-            if (currentTool === 'line') {
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(e.offsetX, e.offsetY);
-                ctx.stroke();
-            } else if (currentTool === 'circle') {
-                ctx.beginPath();
-                let radius = Math.sqrt(Math.pow(startX - e.offsetX, 2) + Math.pow(startY - e.offsetY, 2));
-                ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
-                ctx.stroke();
-            } else if (currentTool === 'rect') {
-                ctx.strokeRect(e.offsetX, e.offsetY, startX - e.offsetX, startY - e.offsetY);
-            }
+    function addShape(type) {
+        let shape;
+        const opts = {
+            left: 100,
+            top: 100,
+            fill: colorPicker.value,
+            width: 100,
+            height: 100,
+            strokeWidth: parseInt(brushSize.value),
+            stroke: '#fff'
+        };
+
+        if (type === 'circle') {
+            shape = new fabric.Circle({ ...opts, radius: 50 });
+        } else if (type === 'rect') {
+            shape = new fabric.Rect(opts);
+        }
+
+        if (shape) {
+            canvas.add(shape);
+            canvas.setActiveObject(shape);
+            // Switch back to select after adding
+            // currentTool = 'select';
+            // updateToolMode();
         }
     }
 
-    function stopDraw() {
-        isDrawing = false;
-        autoSave();
-    }
+    // --- Property Sync ---
+    colorPicker.addEventListener('input', () => {
+        const activeObj = canvas.getActiveObject();
+        if (activeObj) {
+            activeObj.set('fill', colorPicker.value);
+            canvas.renderAll();
+        }
+        if (canvas.isDrawingMode) {
+            canvas.freeDrawingBrush.color = colorPicker.value;
+        }
+    });
 
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', drawing);
-    window.addEventListener('mouseup', stopDraw);
+    brushSize.addEventListener('input', () => {
+        const activeObj = canvas.getActiveObject();
+        if (activeObj) {
+            activeObj.set('strokeWidth', parseInt(brushSize.value));
+            canvas.renderAll();
+        }
+        if (canvas.isDrawingMode) {
+            canvas.freeDrawingBrush.width = parseInt(brushSize.value);
+        }
+    });
+
+    // --- Layering ---
+    toFrontBtn.addEventListener('click', () => {
+        const activeObj = canvas.getActiveObject();
+        if (activeObj) activeObj.bringToFront();
+    });
+
+    toBackBtn.addEventListener('click', () => {
+        const activeObj = canvas.getActiveObject();
+        if (activeObj) activeObj.sendToBack();
+    });
 
     // --- Actions ---
     clearBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to clear the canvas?')) {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (confirm('Clear all vector objects?')) {
+            canvas.clear();
+            canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
             autoSave();
         }
     });
 
     downloadBtn.addEventListener('click', () => {
+        const dataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1
+        });
         const link = document.createElement('a');
-        link.download = `calqube-artwork-${Date.now()}.png`;
-        link.href = canvas.toDataURL();
+        link.download = `calqube-vector-${Date.now()}.png`;
+        link.href = dataURL;
         link.click();
     });
 
     // --- Auto-Save ---
+    canvas.on('object:modified', autoSave);
+    canvas.on('object:added', autoSave);
+    canvas.on('object:removed', autoSave);
+
     function autoSave() {
-        saveStatus.innerText = 'Saving...';
-        localStorage.setItem('calqube_studio_save', canvas.toDataURL());
+        saveStatus.innerText = 'Syncing...';
+        localStorage.setItem('calqube_pro_save', JSON.stringify(canvas.toJSON()));
         setTimeout(() => {
             saveStatus.innerText = 'Saved';
         }, 1000);

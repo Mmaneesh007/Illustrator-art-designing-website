@@ -59,8 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'pen':
                 canvas.isDrawingMode = true;
                 canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-                canvas.freeDrawingBrush.width = parseInt(brushSize.value);
+                canvas.freeDrawingBrush.width = parseInt(brushSize.value) || 5;
                 canvas.freeDrawingBrush.color = colorPicker.value;
+                canvas.freeDrawingBrush.shadow = new fabric.Shadow({
+                    blur: 10,
+                    offsetX: 0,
+                    offsetY: 0,
+                    affectStroke: true,
+                    color: colorPicker.value
+                });
                 break;
             case 'eraser':
                 // Eraser in Vector is often implemented as a white/bg-colored brush 
@@ -116,6 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (canvas.isDrawingMode) {
             canvas.freeDrawingBrush.color = colorPicker.value;
+            if (canvas.freeDrawingBrush.shadow) {
+                canvas.freeDrawingBrush.shadow.color = colorPicker.value;
+            }
         }
     });
 

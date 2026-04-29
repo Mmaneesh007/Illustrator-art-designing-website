@@ -215,6 +215,21 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     };
 
+    // --- Keyboard Shortcuts ---
+    window.onkeydown = (e) => {
+        if (['Delete', 'Backspace'].includes(e.key)) {
+            // Don't delete if user is typing in an input field
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            
+            const active = canvas.getActiveObjects();
+            if (active.length) {
+                canvas.remove(...active);
+                canvas.discardActiveObject().renderAll();
+                autoSave();
+            }
+        }
+    };
+
     // --- Auto-Save ---
     function autoSave() {
         saveStatus.innerText = 'Syncing...';

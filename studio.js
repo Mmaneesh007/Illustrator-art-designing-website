@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Initialize Pro Extreme Engine ---
     const canvas = new fabric.Canvas('main-canvas', {
-        backgroundColor: '#111',
+        backgroundColor: '#ffffff',
         selection: true,
-        preserveObjectStacking: true
+        preserveObjectStacking: true,
+        width: 1000,
+        height: 800
     });
 
     // --- UI Elements ---
@@ -26,12 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentTool = 'select';
 
-    // --- Responsive Canvas ---
+    // --- Responsive Artboard Calibration ---
     function resizeCanvas() {
-        const container = document.querySelector('.studio-canvas-wrapper');
-        const rect = container.getBoundingClientRect();
-        canvas.setDimensions({ width: rect.width, height: rect.height });
-        canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
+        // Artboard stays 1000x800, CSS Flex handles centering
+        canvas.renderAll();
     }
     setTimeout(resizeCanvas, 500);
     window.addEventListener('resize', resizeCanvas);

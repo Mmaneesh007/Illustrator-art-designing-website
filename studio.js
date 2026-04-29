@@ -104,6 +104,72 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
+    // Typography Bindings
+    const propFont = document.getElementById('prop-font');
+    propFont.onchange = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('fontFamily', propFont.value);
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    document.getElementById('prop-bold').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    document.getElementById('prop-italic').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    document.getElementById('prop-underline').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('underline', !obj.underline);
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    // WordArt Effects
+    document.getElementById('text-shadow').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('shadow', new fabric.Shadow({ color: 'rgba(0,0,0,0.5)', blur: 10, offsetX: 5, offsetY: 5 }));
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    document.getElementById('text-glow').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set('shadow', new fabric.Shadow({ color: props.fill.value, blur: 20, offsetX: 0, offsetY: 0 }));
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
+    document.getElementById('text-outline').onclick = () => {
+        const obj = canvas.getActiveObject();
+        if (obj && obj.type === 'i-text') {
+            obj.set({ stroke: props.fill.value, strokeWidth: 2, fill: 'transparent' });
+            canvas.renderAll();
+            saveState();
+        }
+    };
+
     // --- Tool logic ---
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {

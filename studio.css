@@ -1,4 +1,4 @@
-/* CalQube Studio PRO EXTREME - Rigid IDE Design System */
+@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Dancing+Script:wght@700&family=Inter:wght@400;700&family=Lobster&family=Monoton&family=Montserrat:wght@400;700&family=Outfit:wght@400;700;800&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@700&family=Press+Start+2P&family=Roboto:wght@400;700&family=Special+Elite&display=swap');
 
 :root {
     --bg-dark: #050505;
@@ -247,10 +247,57 @@ canvas {
     box-sizing: border-box;
 }
 
-.properties-content input:focus {
+.properties-content input:focus, .prop-select:focus {
     border-color: var(--accent);
     outline: none;
 }
+
+.prop-select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.style-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.btn-style {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-style-large {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-style:hover, .btn-style.active { background: var(--accent); border-color: var(--accent); }
+.btn-style-large:hover, .btn-style-large.active { border-color: var(--accent); color: #fff; }
 
 .properties-content input[type="color"] {
     padding: 2px;

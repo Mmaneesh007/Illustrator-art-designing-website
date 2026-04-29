@@ -160,6 +160,61 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeObj) activeObj.sendToBack();
     });
 
+    // --- Clipboard System (Copy/Paste) ---
+    let _clipboard;
+
+    window.addEventListener('keydown', (e) => {
+        // Ctrl+C or Cmd+C
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 67) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                activeObj.clone((cloned) => {
+                    _clipboard = cloned;
+                });
+            }
+        }
+        // Ctrl+V or Cmd+V
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 86) {
+            if (_clipboard) {
+                _clipboard.clone((clonedObj) => {
+                    canvas.discardActiveObject();
+                    clonedObj.set({
+                        left: clonedObj.left + 15,
+                        top: clonedObj.top + 15,
+                        evented: true,
+                    });
+                    if (clonedObj.type === 'activeSelection') {
+                        // active selection needs a reference to the canvas.
+                        clonedObj.canvas = canvas;
+                        clonedObj.forEachObject((obj) => {
+                            canvas.add(obj);
+                        });
+                        // this code is needed to settle separate controls for every object in the selection.
+                        clonedObj.setCoords();
+                    } else {
+                        canvas.add(clonedObj);
+                    }
+                    _clipboard.top += 15;
+                    _clipboard.left += 15;
+                    canvas.setActiveObject(clonedObj);
+                    canvas.requestRenderAll();
+                    autoSave();
+                });
+            }
+        }
+        // Delete key
+        if (e.keyCode === 46 || e.keyCode === 8) {
+            if (!canvas.isDrawingMode) {
+                const activeObjects = canvas.getActiveObjects();
+                if (activeObjects.length) {
+                    canvas.discardActiveObject();
+                    canvas.remove(...activeObjects);
+                    autoSave();
+                }
+            }
+        }
+    });
+
     // --- Actions ---
     clearBtn.addEventListener('click', () => {
         // Direct Power-Clear (No blocker)

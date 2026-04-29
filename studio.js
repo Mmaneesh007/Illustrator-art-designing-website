@@ -215,20 +215,101 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     };
 
+    // --- Professional State & Clipboard Engine ---
+    let undoStack = [];
+    let redoStack = [];
+    let _clipboard = null;
+    let isStateSaving = false;
+
+    function saveState() {
+        if (isStateSaving) return;
+        undoStack.push(JSON.stringify(canvas.toJSON()));
+        redoStack = []; // Clear redo on new action
+        if (undoStack.length > 50) undoStack.shift(); // Limit history
+        autoSave();
+    }
+
+    function undo() {
+        if (undoStack.length <= 1) return;
+        isStateSaving = true;
+        redoStack.push(undoStack.pop());
+        const state = undoStack[undoStack.length - 1];
+        canvas.loadFromJSON(state, () => {
+            canvas.renderAll();
+            isStateSaving = false;
+            updateLayers();
+        });
+    }
+
+    function redo() {
+        if (!redoStack.length) return;
+        isStateSaving = true;
+        const state = redoStack.pop();
+        undoStack.push(state);
+        canvas.loadFromJSON(state, () => {
+            canvas.renderAll();
+            isStateSaving = false;
+            updateLayers();
+        });
+    }
+
+    function copy() {
+        canvas.getActiveObject()?.clone((cloned) => { _clipboard = cloned; });
+    }
+
+    function paste() {
+        if (!_clipboard) return;
+        _clipboard.clone((cloned) => {
+            canvas.discardActiveObject();
+            cloned.set({
+                left: cloned.left + 20,
+                top: cloned.top + 20,
+                evented: true,
+            });
+            if (cloned.type === 'activeSelection') {
+                cloned.canvas = canvas;
+                cloned.forEachObject((obj) => canvas.add(obj));
+                cloned.setCoords();
+            } else {
+                canvas.add(cloned);
+            }
+            _clipboard.top += 20;
+            _clipboard.left += 20;
+            canvas.setActiveObject(cloned);
+            canvas.requestRenderAll();
+            saveState();
+        });
+    }
+
     // --- Keyboard Shortcuts ---
     window.onkeydown = (e) => {
-        if (['Delete', 'Backspace'].includes(e.key)) {
-            // Don't delete if user is typing in an input field
-            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
-            
-            const active = canvas.getActiveObjects();
-            if (active.length) {
-                canvas.remove(...active);
-                canvas.discardActiveObject().renderAll();
-                autoSave();
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+        const isCtrl = e.ctrlKey || e.metaKey;
+
+        if (isCtrl) {
+            switch(e.key.toLowerCase()) {
+                case 'z': e.preventDefault(); undo(); break;
+                case 'y': e.preventDefault(); redo(); break;
+                case 'c': e.preventDefault(); copy(); break;
+                case 'v': e.preventDefault(); paste(); break;
+                case 'x': e.preventDefault(); copy(); canvas.remove(...canvas.getActiveObjects()); saveState(); break;
+            }
+        } else {
+            if (['Delete', 'Backspace'].includes(e.key)) {
+                const active = canvas.getActiveObjects();
+                if (active.length) {
+                    canvas.remove(...active);
+                    canvas.discardActiveObject().renderAll();
+                    saveState();
+                }
             }
         }
     };
+
+    canvas.on('object:added', saveState);
+    canvas.on('object:modified', saveState);
+    canvas.on('object:removed', saveState);
 
     // --- Auto-Save ---
     function autoSave() {

@@ -95,7 +95,24 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'rect':
                 addShape('rect');
                 break;
+            case 'text':
+                addText();
+                break;
         }
+    }
+
+    function addText() {
+        const text = new fabric.IText('Double Click to Edit', {
+            left: 100,
+            top: 100,
+            fontFamily: 'Outfit',
+            fill: colorPicker.value,
+            fontSize: parseInt(brushSize.value) * 10 || 40,
+            fontWeight: '600'
+        });
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        canvas.renderAll();
     }
 
     function addShape(type) {
@@ -201,6 +218,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     autoSave();
                 });
             }
+        }
+        // Text Tool Shortcut (T)
+        if (e.keyCode === 84 && !canvas.getActiveObject()?.isEditing) {
+            document.querySelector('[data-tool="text"]').click();
         }
         // Delete key
         if (e.keyCode === 46 || e.keyCode === 8) {

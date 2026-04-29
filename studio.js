@@ -144,7 +144,20 @@ document.addEventListener('DOMContentLoaded', () => {
         autoSave();
     };
 
-    // --- Actions ---
+    // --- Theme Toggle ---
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.onclick = () => {
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        const bg = isLight ? '#ffffff' : '#111111';
+        canvas.setBackgroundColor(bg, canvas.renderAll.bind(canvas));
+        localStorage.setItem('calqube_theme', isLight ? 'light' : 'dark');
+    };
+    if (localStorage.getItem('calqube_theme') === 'light') {
+        document.body.classList.add('light-mode');
+        // Delay to ensure canvas is ready
+        setTimeout(() => canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas)), 600);
+    }
     document.getElementById('to-front').onclick = () => canvas.getActiveObject()?.bringToFront();
     document.getElementById('clear-canvas').onclick = () => { canvas.clear(); canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas)); localStorage.removeItem('calqube_pro_save'); };
     document.getElementById('download-btn').onclick = () => {

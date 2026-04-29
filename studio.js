@@ -114,22 +114,63 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.isDrawingMode = true;
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
             canvas.freeDrawingBrush.width = 5;
-            canvas.freeDrawingBrush.color = '#3b82f6';
-        } else if (['rect', 'circle', 'text'].includes(currentTool)) {
+            canvas.freeDrawingBrush.color = props.fill.value || '#3b82f6';
+        } else if (currentTool === 'eraser') {
+            const active = canvas.getActiveObjects();
+            if (active.length) {
+                canvas.remove(...active);
+                canvas.discardActiveObject().renderAll();
+                autoSave();
+            }
+        } else if (['rect', 'circle', 'text', 'curve'].includes(currentTool)) {
             addObj(currentTool);
         }
     }
 
     function addObj(type) {
         let obj;
-        const base = { left: 100, top: 100, fill: '#3b82f6' };
+        const base = { left: 100, top: 100, fill: props.fill.value || '#3b82f6' };
         if (type === 'rect') obj = new fabric.Rect({ ...base, width: 100, height: 100 });
         if (type === 'circle') obj = new fabric.Circle({ ...base, radius: 50 });
         if (type === 'text') obj = new fabric.IText('PRO EXTREME', { ...base, fontFamily: 'Outfit' });
+        if (type === 'curve') {
+            obj = new fabric.Path('M 0 0 Q 50 100 100 0', { 
+                ...base, 
+                fill: '', 
+                stroke: props.fill.value || '#3b82f6', 
+                strokeWidth: 4 
+            });
+        }
         
         canvas.add(obj);
         canvas.setActiveObject(obj);
         canvas.renderAll();
+    }
+
+    // --- Image Attachment Engine ---
+    const addImageBtn = document.getElementById('add-image-btn');
+    const imageInput = document.getElementById('image-input');
+
+    if (addImageBtn) {
+        addImageBtn.onclick = () => imageInput.click();
+    }
+
+    if (imageInput) {
+        imageInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (f) => {
+                fabric.Image.fromURL(f.target.result, (img) => {
+                    img.scaleToWidth(300);
+                    canvas.add(img);
+                    canvas.setActiveObject(img);
+                    canvas.renderAll();
+                    autoSave();
+                });
+            };
+            reader.readAsDataURL(file);
+        };
     }
 
     // --- Alignment Engine ---

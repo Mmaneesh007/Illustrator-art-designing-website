@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
         width: 1000,
         height: 800
     });
+    canvas.renderAll();
 
     // --- UI Elements ---
     const toolBtns = document.querySelectorAll('.tool-btn');
@@ -28,14 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentTool = 'select';
 
-    // --- Responsive Artboard Calibration ---
-    function resizeCanvas() {
-        // Artboard stays 1000x800, CSS Flex handles centering
-        canvas.renderAll();
-    }
-    setTimeout(resizeCanvas, 500);
-    window.addEventListener('resize', resizeCanvas);
-
     // --- Layers Management ---
     function updateLayers() {
         layersList.innerHTML = '';
@@ -46,10 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
             item.innerHTML = `<span>${obj.type.toUpperCase()}</span>`;
             item.onclick = () => {
                 canvas.setActiveObject(obj);
-                canvas.renderAll();
+                canvas.requestRenderAll();
             };
             layersList.appendChild(item);
         });
+        canvas.requestRenderAll();
     }
 
     canvas.on('object:added', updateLayers);

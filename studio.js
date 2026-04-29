@@ -182,30 +182,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateToolMode() {
         canvas.isDrawingMode = false;
+        canvas.selection = true;
+        canvas.getObjects().forEach(o => o.selectable = o.evented = true);
+        
         toolStatus.innerText = `${currentTool.toUpperCase()} MODE`;
-        if (currentTool === 'pen') {
+        
+        if (['pen', 'brush', 'pencil', 'blob'].includes(currentTool)) {
             canvas.isDrawingMode = true;
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-            canvas.freeDrawingBrush.width = 5;
+            canvas.freeDrawingBrush.width = parseFloat(props.strokeWidth.value) || 5;
             canvas.freeDrawingBrush.color = props.fill.value || '#3b82f6';
         } else if (currentTool === 'eraser') {
             const active = canvas.getActiveObjects();
             if (active.length) {
                 canvas.remove(...active);
                 canvas.discardActiveObject().renderAll();
-                autoSave();
+                saveState();
             }
-        } else if (['rect', 'circle', 'text', 'curve'].includes(currentTool)) {
+        } else if (currentTool === 'direct-select') {
+            // Allow selecting sub-targets in groups
+            canvas.subTargetCheck = true;
+        } else if (['rect', 'circle', 'text', 'curve', 'line'].includes(currentTool)) {
             addObj(currentTool);
         }
     }
 
     function addObj(type) {
         let obj;
-        const base = { left: 100, top: 100, fill: props.fill.value || '#3b82f6' };
+        const base = { left: 100, top: 100, fill: props.fill.value || '#3b82f6', stroke: props.stroke.value || '#000', strokeWidth: parseFloat(props.strokeWidth.value) || 0 };
         if (type === 'rect') obj = new fabric.Rect({ ...base, width: 100, height: 100 });
         if (type === 'circle') obj = new fabric.Circle({ ...base, radius: 50 });
-        if (type === 'text') obj = new fabric.IText('PRO EXTREME', { ...base, fontFamily: 'Outfit' });
+        if (type === 'text') obj = new fabric.IText('TYPE TEXT', { ...base, fontFamily: 'Outfit' });
+        if (type === 'line') obj = new fabric.Line([50, 50, 200, 200], { ...base, stroke: props.fill.value, strokeWidth: 4 });
         if (type === 'curve') {
             obj = new fabric.Path('M 0 0 Q 50 100 100 0', { 
                 ...base, 
@@ -218,6 +226,23 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.add(obj);
         canvas.setActiveObject(obj);
         canvas.renderAll();
+        saveState();
+    }
+
+    function groupObjects() {
+        if (!canvas.getActiveObject()) return;
+        if (canvas.getActiveObject().type !== 'activeSelection') return;
+        canvas.getActiveObject().toGroup();
+        canvas.requestRenderAll();
+        saveState();
+    }
+
+    function ungroupObjects() {
+        if (!canvas.getActiveObject()) return;
+        if (canvas.getActiveObject().type !== 'group') return;
+        canvas.getActiveObject().toActiveSelection();
+        canvas.requestRenderAll();
+        saveState();
     }
 
     // --- Image Attachment Engine ---
@@ -352,16 +377,52 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
 
         const isCtrl = e.ctrlKey || e.metaKey;
+        const isAlt = e.altKey;
+        const isShift = e.shiftKey;
+        const key = e.key.toLowerCase();
 
         if (isCtrl) {
-            switch(e.key.toLowerCase()) {
+            switch(key) {
                 case 'z': e.preventDefault(); undo(); break;
                 case 'y': e.preventDefault(); redo(); break;
                 case 'c': e.preventDefault(); copy(); break;
                 case 'v': e.preventDefault(); paste(); break;
                 case 'x': e.preventDefault(); copy(); canvas.remove(...canvas.getActiveObjects()); saveState(); break;
+                case 'g': 
+                    e.preventDefault(); 
+                    if (isAlt) ungroupObjects(); 
+                    else groupObjects(); 
+                    break;
             }
         } else {
+            // Single Key Tool Shortcuts (Illustrator Standard)
+            const toolMap = {
+                'v': 'select',
+                'a': 'direct-select',
+                'p': 'pen',
+                't': 'text',
+                'm': 'rect',
+                'l': 'circle',
+                'n': 'pencil',
+                'b': isShift ? 'blob' : 'brush',
+                'r': 'rotate',
+                's': 'scale',
+                'e': isShift ? 'eraser' : 'select',
+                'h': 'hand',
+                'q': 'lasso',
+                'y': 'magic-wand',
+                '\\': 'line'
+            };
+            
+            if (toolMap[key]) {
+                currentTool = toolMap[key];
+                document.querySelectorAll('.tool-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.tool === currentTool);
+                });
+                updateToolMode();
+                return;
+            }
+
             if (['Delete', 'Backspace'].includes(e.key)) {
                 const active = canvas.getActiveObjects();
                 if (active.length) {

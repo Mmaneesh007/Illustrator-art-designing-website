@@ -153,15 +153,21 @@ aside {
 /* Tool Sidebar */
 .tool-sidebar {
     align-items: center;
-    padding: 2.5rem 0; /* Clear the floating nav */
+    padding: 2.5rem 0.5rem; /* Clear the floating nav and add side padding */
+}
+
+.tool-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
 }
 
 .tool-btn {
-    width: 44px;
-    height: 44px;
-    margin-bottom: 1rem;
+    width: 36px;
+    height: 36px;
     border: none;
-    background: transparent !important; /* Force no background */
+    background: transparent !important;
     color: var(--text-dim);
     cursor: pointer;
     display: flex;
@@ -169,6 +175,7 @@ aside {
     align-items: center;
     transition: all 0.2s;
     outline: none;
+    border-radius: 4px;
 }
 
 .tool-btn svg {

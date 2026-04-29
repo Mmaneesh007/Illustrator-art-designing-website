@@ -1,20 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Initialize Fabric.js Vector Engine ---
+    // --- Initialize Pro Extreme Engine ---
     const canvas = new fabric.Canvas('main-canvas', {
         backgroundColor: '#111',
         selection: true,
         preserveObjectStacking: true
     });
 
-    const brushSize = document.getElementById('brush-size');
-    const colorPicker = document.getElementById('color-picker');
+    // --- UI Elements ---
     const toolBtns = document.querySelectorAll('.tool-btn');
-    const clearBtn = document.getElementById('clear-canvas');
-    const downloadBtn = document.getElementById('download-btn');
-    const toFrontBtn = document.getElementById('to-front');
-    const toBackBtn = document.getElementById('to-back');
+    const layersList = document.getElementById('layers-list');
     const toolStatus = document.getElementById('tool-status');
     const saveStatus = document.getElementById('save-status');
+
+    // --- Property Inputs ---
+    const props = {
+        x: document.getElementById('prop-x'),
+        y: document.getElementById('prop-y'),
+        w: document.getElementById('prop-w'),
+        h: document.getElementById('prop-h'),
+        fill: document.getElementById('prop-fill'),
+        stroke: document.getElementById('prop-stroke'),
+        strokeWidth: document.getElementById('prop-stroke-width'),
+        opacity: document.getElementById('prop-opacity')
+    };
 
     let currentTool = 'select';
 
@@ -22,32 +30,74 @@ document.addEventListener('DOMContentLoaded', () => {
     function resizeCanvas() {
         const container = document.querySelector('.studio-canvas-wrapper');
         const rect = container.getBoundingClientRect();
-        
-        canvas.setDimensions({
-            width: rect.width - 60,
-            height: rect.height - 60
-        });
-        
-        canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
+        canvas.setDimensions({ width: rect.width, height: rect.height });
+        canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas));
     }
-    
-    // Safety delay to ensure container is rendered
-    setTimeout(() => {
-        resizeCanvas();
-        // Add a placeholder object to test visibility
-        addShape('rect');
-        canvas.renderAll();
-    }, 500);
-
+    setTimeout(resizeCanvas, 500);
     window.addEventListener('resize', resizeCanvas);
 
-    // --- Auto-Save Loading ---
-    const savedJSON = localStorage.getItem('calqube_pro_save');
-    if (savedJSON) {
-        canvas.loadFromJSON(savedJSON, canvas.renderAll.bind(canvas));
+    // --- Layers Management ---
+    function updateLayers() {
+        layersList.innerHTML = '';
+        canvas.getObjects().reverse().forEach((obj, index) => {
+            const item = document.createElement('div');
+            item.className = 'layer-item';
+            if (canvas.getActiveObject() === obj) item.classList.add('active');
+            item.innerHTML = `<span>${obj.type.toUpperCase()}</span>`;
+            item.onclick = () => {
+                canvas.setActiveObject(obj);
+                canvas.renderAll();
+            };
+            layersList.appendChild(item);
+        });
     }
 
-    // --- Tool Selection Logic ---
+    canvas.on('object:added', updateLayers);
+    canvas.on('object:removed', updateLayers);
+    canvas.on('selection:created', (e) => { updateLayers(); updateProperties(e.selected[0]); });
+    canvas.on('selection:updated', (e) => { updateLayers(); updateProperties(e.selected[0]); });
+    canvas.on('selection:cleared', () => { updateLayers(); resetProperties(); });
+    canvas.on('object:modified', (e) => { updateProperties(e.target); autoSave(); });
+
+    // --- Property Engine ---
+    function updateProperties(obj) {
+        if (!obj) return;
+        props.x.value = Math.round(obj.left);
+        props.y.value = Math.round(obj.top);
+        props.w.value = Math.round(obj.width * obj.scaleX);
+        props.h.value = Math.round(obj.height * obj.scaleY);
+        props.fill.value = obj.fill || '#ffffff';
+        props.stroke.value = obj.stroke || '#000000';
+        props.strokeWidth.value = obj.strokeWidth || 0;
+        props.opacity.value = obj.opacity * 100;
+    }
+
+    function resetProperties() {
+        Object.values(props).forEach(input => input.value = '');
+    }
+
+    // Bidirectional Binding
+    Object.keys(props).forEach(key => {
+        props[key].oninput = () => {
+            const obj = canvas.getActiveObject();
+            if (!obj) return;
+            const val = props[key].value;
+            switch(key) {
+                case 'x': obj.set('left', parseFloat(val)); break;
+                case 'y': obj.set('top', parseFloat(val)); break;
+                case 'w': obj.set('width', parseFloat(val) / obj.scaleX); break;
+                case 'h': obj.set('height', parseFloat(val) / obj.scaleY); break;
+                case 'fill': obj.set('fill', val); break;
+                case 'stroke': obj.set('stroke', val); break;
+                case 'strokeWidth': obj.set('strokeWidth', parseFloat(val)); break;
+                case 'opacity': obj.set('opacity', parseFloat(val) / 100); break;
+            }
+            canvas.renderAll();
+            autoSave();
+        };
+    });
+
+    // --- Tool logic ---
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelector('.tool-btn.active').classList.remove('active');
@@ -59,221 +109,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateToolMode() {
         canvas.isDrawingMode = false;
-        canvas.selection = false;
-        toolStatus.innerText = `${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)} Mode`;
-
-        switch(currentTool) {
-            case 'select':
-                canvas.selection = true;
-                canvas.forEachObject(obj => obj.selectable = obj.evented = true);
-                break;
-            case 'pen':
-                canvas.isDrawingMode = true;
-                canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-                canvas.freeDrawingBrush.width = parseInt(brushSize.value) || 5;
-                canvas.freeDrawingBrush.color = colorPicker.value;
-                canvas.freeDrawingBrush.shadow = new fabric.Shadow({
-                    blur: 10,
-                    offsetX: 0,
-                    offsetY: 0,
-                    affectStroke: true,
-                    color: colorPicker.value
-                });
-                break;
-            case 'eraser':
-                // Eraser in Vector is often implemented as a white/bg-colored brush 
-                // or by deleting selected objects. For UX, we'll delete selected.
-                const activeObjects = canvas.getActiveObjects();
-                if (activeObjects.length) {
-                    canvas.discardActiveObject();
-                    canvas.remove(...activeObjects);
-                }
-                break;
-            case 'circle':
-                addShape('circle');
-                break;
-            case 'rect':
-                addShape('rect');
-                break;
-            case 'text':
-                addText();
-                break;
+        toolStatus.innerText = `${currentTool.toUpperCase()} MODE`;
+        if (currentTool === 'pen') {
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            canvas.freeDrawingBrush.width = 5;
+            canvas.freeDrawingBrush.color = '#3b82f6';
+        } else if (['rect', 'circle', 'text'].includes(currentTool)) {
+            addObj(currentTool);
         }
     }
 
-    function addText() {
-        const text = new fabric.IText('Double Click to Edit', {
-            left: 100,
-            top: 100,
-            fontFamily: 'Outfit',
-            fill: colorPicker.value,
-            fontSize: parseInt(brushSize.value) * 10 || 40,
-            fontWeight: '600'
-        });
-        canvas.add(text);
-        canvas.setActiveObject(text);
+    function addObj(type) {
+        let obj;
+        const base = { left: 100, top: 100, fill: '#3b82f6' };
+        if (type === 'rect') obj = new fabric.Rect({ ...base, width: 100, height: 100 });
+        if (type === 'circle') obj = new fabric.Circle({ ...base, radius: 50 });
+        if (type === 'text') obj = new fabric.IText('PRO EXTREME', { ...base, fontFamily: 'Outfit' });
+        
+        canvas.add(obj);
+        canvas.setActiveObject(obj);
         canvas.renderAll();
     }
 
-    function addShape(type) {
-        let shape;
-        const opts = {
-            left: 100,
-            top: 100,
-            fill: colorPicker.value,
-            width: 100,
-            height: 100,
-            strokeWidth: parseInt(brushSize.value),
-            stroke: '#fff'
-        };
-
-        if (type === 'circle') {
-            shape = new fabric.Circle({ ...opts, radius: 50 });
-        } else if (type === 'rect') {
-            shape = new fabric.Rect(opts);
-        }
-
-        if (shape) {
-            canvas.add(shape);
-            canvas.setActiveObject(shape);
-            canvas.renderAll();
-        }
-    }
-
-    // --- Property Sync ---
-    colorPicker.addEventListener('input', () => {
-        const activeObj = canvas.getActiveObject();
-        if (activeObj) {
-            activeObj.set('fill', colorPicker.value);
-            canvas.renderAll();
-        }
-        if (canvas.isDrawingMode) {
-            canvas.freeDrawingBrush.color = colorPicker.value;
-            if (canvas.freeDrawingBrush.shadow) {
-                canvas.freeDrawingBrush.shadow.color = colorPicker.value;
-            }
-        }
-    });
-
-    brushSize.addEventListener('input', () => {
-        const activeObj = canvas.getActiveObject();
-        if (activeObj) {
-            activeObj.set('strokeWidth', parseInt(brushSize.value));
-            canvas.renderAll();
-        }
-        if (canvas.isDrawingMode) {
-            canvas.freeDrawingBrush.width = parseInt(brushSize.value);
-        }
-    });
-
-    // --- Layering ---
-    toFrontBtn.addEventListener('click', () => {
-        const activeObj = canvas.getActiveObject();
-        if (activeObj) activeObj.bringToFront();
-    });
-
-    toBackBtn.addEventListener('click', () => {
-        const activeObj = canvas.getActiveObject();
-        if (activeObj) activeObj.sendToBack();
-    });
-
-    // --- Clipboard System (Copy/Paste) ---
-    let _clipboard;
-
-    window.addEventListener('keydown', (e) => {
-        // Ctrl+C or Cmd+C
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 67) {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj) {
-                activeObj.clone((cloned) => {
-                    _clipboard = cloned;
-                });
-            }
-        }
-        // Ctrl+V or Cmd+V
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 86) {
-            if (_clipboard) {
-                _clipboard.clone((clonedObj) => {
-                    canvas.discardActiveObject();
-                    clonedObj.set({
-                        left: clonedObj.left + 15,
-                        top: clonedObj.top + 15,
-                        evented: true,
-                    });
-                    if (clonedObj.type === 'activeSelection') {
-                        // active selection needs a reference to the canvas.
-                        clonedObj.canvas = canvas;
-                        clonedObj.forEachObject((obj) => {
-                            canvas.add(obj);
-                        });
-                        // this code is needed to settle separate controls for every object in the selection.
-                        clonedObj.setCoords();
-                    } else {
-                        canvas.add(clonedObj);
-                    }
-                    _clipboard.top += 15;
-                    _clipboard.left += 15;
-                    canvas.setActiveObject(clonedObj);
-                    canvas.requestRenderAll();
-                    autoSave();
-                });
-            }
-        }
-        // Text Tool Shortcut (T)
-        if (e.keyCode === 84 && !canvas.getActiveObject()?.isEditing) {
-            document.querySelector('[data-tool="text"]').click();
-        }
-        // Delete key
-        if (e.keyCode === 46 || e.keyCode === 8) {
-            if (!canvas.isDrawingMode) {
-                const activeObjects = canvas.getActiveObjects();
-                if (activeObjects.length) {
-                    canvas.discardActiveObject();
-                    canvas.remove(...activeObjects);
-                    autoSave();
-                }
-            }
-        }
-    });
+    // --- Alignment Engine ---
+    window.align = (dir) => {
+        const obj = canvas.getActiveObject();
+        if (!obj) return;
+        const cw = canvas.width;
+        if (dir === 'left') obj.set('left', 0);
+        if (dir === 'center') obj.set('left', (cw / 2) - (obj.width * obj.scaleX / 2));
+        if (dir === 'right') obj.set('left', cw - (obj.width * obj.scaleX));
+        canvas.renderAll();
+        autoSave();
+    };
 
     // --- Actions ---
-    clearBtn.addEventListener('click', () => {
-        // Direct Power-Clear (No blocker)
-        canvas.clear();
-        canvas.setBackgroundColor('#151515', canvas.renderAll.bind(canvas));
-        localStorage.removeItem('calqube_pro_save');
-        
-        // Visual Feedback
-        clearBtn.style.background = '#ef4444'; // Red Pulse
-        saveStatus.innerText = 'Engine Reset Successful';
-        
-        setTimeout(() => { 
-            clearBtn.style.background = ''; 
-            saveStatus.innerText = 'Saved'; 
-        }, 1000);
-    });
-
-    downloadBtn.addEventListener('click', () => {
-        const dataURL = canvas.toDataURL({
-            format: 'png',
-            quality: 1
-        });
+    document.getElementById('to-front').onclick = () => canvas.getActiveObject()?.bringToFront();
+    document.getElementById('clear-canvas').onclick = () => { canvas.clear(); canvas.setBackgroundColor('#111', canvas.renderAll.bind(canvas)); localStorage.removeItem('calqube_pro_save'); };
+    document.getElementById('download-btn').onclick = () => {
         const link = document.createElement('a');
-        link.download = `calqube-vector-${Date.now()}.png`;
-        link.href = dataURL;
+        link.download = 'calqube-extreme.png';
+        link.href = canvas.toDataURL();
         link.click();
-    });
+    };
 
     // --- Auto-Save ---
-    canvas.on('object:modified', autoSave);
-    canvas.on('object:added', autoSave);
-    canvas.on('object:removed', autoSave);
-
     function autoSave() {
         saveStatus.innerText = 'Syncing...';
         localStorage.setItem('calqube_pro_save', JSON.stringify(canvas.toJSON()));
-        setTimeout(() => {
-            saveStatus.innerText = 'Saved';
-        }, 1000);
+        setTimeout(() => saveStatus.innerText = 'Saved', 1000);
     }
+    const saved = localStorage.getItem('calqube_pro_save');
+    if (saved) canvas.loadFromJSON(saved, canvas.renderAll.bind(canvas));
 });

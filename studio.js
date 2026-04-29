@@ -80,8 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(props).forEach(key => {
         props[key].oninput = () => {
             const obj = canvas.getActiveObject();
-            if (!obj) return;
             const val = props[key].value;
+
+            // Update Drawing Brush in real-time
+            if (canvas.isDrawingMode && canvas.freeDrawingBrush) {
+                if (key === 'fill' || key === 'stroke') canvas.freeDrawingBrush.color = val;
+                if (key === 'strokeWidth') canvas.freeDrawingBrush.width = parseFloat(val) || 1;
+            }
+
+            if (!obj) return;
             switch(key) {
                 case 'x': obj.set('left', parseFloat(val)); break;
                 case 'y': obj.set('top', parseFloat(val)); break;

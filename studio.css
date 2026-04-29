@@ -129,26 +129,31 @@ aside {
 /* Tool Sidebar */
 .tool-sidebar {
     align-items: center;
-    padding: 1rem 0;
+    padding: 2.5rem 0; /* Clear the floating nav */
 }
 
 .tool-btn {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 0.75rem;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 1rem;
     border: none;
-    background: transparent;
+    background: transparent !important; /* Force no background */
     color: var(--text-dim);
-    border-radius: 8px;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     transition: all 0.2s;
+    outline: none;
 }
 
-.tool-btn:hover { color: #fff; background: #111; }
-.tool-btn.active { background: var(--accent); color: #fff; }
+.tool-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.tool-btn:hover { color: #fff; }
+.tool-btn.active { color: var(--accent); }
 
 /* Canvas Area */
 .studio-canvas-wrapper {
@@ -182,11 +187,12 @@ canvas {
 
 .prop-group label {
     display: block;
-    font-size: 0.65rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: #ffffff; /* Absolute white for visibility */
     margin-bottom: 1rem;
+    letter-spacing: 0.05em;
 }
 
 .prop-row {
@@ -201,8 +207,8 @@ canvas {
 
 .prop-col span {
     display: block;
-    font-size: 0.6rem;
-    color: #444;
+    font-size: 0.65rem;
+    color: #aaaaaa; /* High contrast sub-labels */
     margin-bottom: 4px;
 }
 

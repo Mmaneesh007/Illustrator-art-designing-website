@@ -59,9 +59,21 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.on('selection:cleared', () => { updateLayers(); resetProperties(); });
     canvas.on('object:modified', (e) => { updateProperties(e.target); autoSave(); });
 
+    // --- Top Control Palette ---
+    const ctrl = {
+        fill: document.getElementById('ctrl-fill'),
+        stroke: document.getElementById('ctrl-stroke'),
+        strokeWidth: document.getElementById('ctrl-stroke-width'),
+        font: document.getElementById('ctrl-font'),
+        bold: document.getElementById('ctrl-bold'),
+        textGroup: document.getElementById('ctrl-text-tools')
+    };
+
     // --- Property Engine ---
     function updateProperties(obj) {
         if (!obj) return;
+        
+        // Sync Sidebar Props
         props.x.value = Math.round(obj.left);
         props.y.value = Math.round(obj.top);
         props.w.value = Math.round(obj.width * obj.scaleX);
@@ -70,39 +82,60 @@ document.addEventListener('DOMContentLoaded', () => {
         props.stroke.value = obj.stroke || '#000000';
         props.strokeWidth.value = obj.strokeWidth || 0;
         props.opacity.value = obj.opacity * 100;
+
+        // Sync Top Control Palette
+        ctrl.fill.value = obj.fill || '#ffffff';
+        ctrl.stroke.value = obj.stroke || '#000000';
+        ctrl.strokeWidth.value = obj.strokeWidth || 0;
+        
+        if (obj.type === 'i-text') {
+            ctrl.textGroup.style.display = 'flex';
+            ctrl.font.value = obj.fontFamily;
+        } else {
+            ctrl.textGroup.style.display = 'none';
+        }
     }
 
     function resetProperties() {
         Object.values(props).forEach(input => input.value = '');
+        ctrl.textGroup.style.display = 'none';
     }
 
-    // Bidirectional Binding
+    // Bidirectional Binding (Global)
+    function handleInput(key, val) {
+        const obj = canvas.getActiveObject();
+        
+        // Drawing Brush Sync
+        if (canvas.isDrawingMode && canvas.freeDrawingBrush) {
+            if (key === 'fill' || key === 'stroke') canvas.freeDrawingBrush.color = val;
+            if (key === 'strokeWidth') canvas.freeDrawingBrush.width = parseFloat(val) || 1;
+        }
+
+        if (!obj) return;
+        switch(key) {
+            case 'x': obj.set('left', parseFloat(val)); break;
+            case 'y': obj.set('top', parseFloat(val)); break;
+            case 'w': obj.set('width', parseFloat(val) / obj.scaleX); break;
+            case 'h': obj.set('height', parseFloat(val) / obj.scaleY); break;
+            case 'fill': obj.set('fill', val); break;
+            case 'stroke': obj.set('stroke', val); break;
+            case 'strokeWidth': obj.set('strokeWidth', parseFloat(val)); break;
+            case 'opacity': obj.set('opacity', parseFloat(val) / 100); break;
+            case 'fontFamily': obj.set('fontFamily', val); break;
+        }
+        canvas.renderAll();
+        saveState();
+    }
+
     Object.keys(props).forEach(key => {
-        props[key].oninput = () => {
-            const obj = canvas.getActiveObject();
-            const val = props[key].value;
-
-            // Update Drawing Brush in real-time
-            if (canvas.isDrawingMode && canvas.freeDrawingBrush) {
-                if (key === 'fill' || key === 'stroke') canvas.freeDrawingBrush.color = val;
-                if (key === 'strokeWidth') canvas.freeDrawingBrush.width = parseFloat(val) || 1;
-            }
-
-            if (!obj) return;
-            switch(key) {
-                case 'x': obj.set('left', parseFloat(val)); break;
-                case 'y': obj.set('top', parseFloat(val)); break;
-                case 'w': obj.set('width', parseFloat(val) / obj.scaleX); break;
-                case 'h': obj.set('height', parseFloat(val) / obj.scaleY); break;
-                case 'fill': obj.set('fill', val); break;
-                case 'stroke': obj.set('stroke', val); break;
-                case 'strokeWidth': obj.set('strokeWidth', parseFloat(val)); break;
-                case 'opacity': obj.set('opacity', parseFloat(val) / 100); break;
-            }
-            canvas.renderAll();
-            autoSave();
-        };
+        props[key].oninput = () => handleInput(key, props[key].value);
     });
+
+    // Top Bar Listeners
+    ctrl.fill.oninput = () => { props.fill.value = ctrl.fill.value; handleInput('fill', ctrl.fill.value); };
+    ctrl.stroke.oninput = () => { props.stroke.value = ctrl.stroke.value; handleInput('stroke', ctrl.stroke.value); };
+    ctrl.strokeWidth.oninput = () => { props.strokeWidth.value = ctrl.strokeWidth.value; handleInput('strokeWidth', ctrl.strokeWidth.value); };
+    ctrl.font.onchange = () => handleInput('fontFamily', ctrl.font.value);
 
     // Typography Bindings
     const propFont = document.getElementById('prop-font');

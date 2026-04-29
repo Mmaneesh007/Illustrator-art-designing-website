@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.innerHTML = `<span>${obj.type.toUpperCase()}</span>`;
             item.onclick = () => {
                 canvas.setActiveObject(obj);
+                obj.center(); // Bring "lost" or off-canvas objects to the visible center
                 canvas.requestRenderAll();
             };
             layersList.appendChild(item);
@@ -218,7 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.isDrawingMode = true;
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
             canvas.freeDrawingBrush.width = parseFloat(props.strokeWidth.value) || 5;
-            canvas.freeDrawingBrush.color = props.fill.value || '#3b82f6';
+            // Prevent drawing white-on-white by defaulting to Black
+            canvas.freeDrawingBrush.color = (!props.fill.value || props.fill.value.toLowerCase() === '#ffffff') ? '#000000' : props.fill.value;
         } else if (currentTool === 'eraser') {
             const active = canvas.getActiveObjects();
             if (active.length) {
@@ -236,16 +238,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addObj(type) {
         let obj;
-        const base = { left: 100, top: 100, fill: props.fill.value || '#3b82f6', stroke: props.stroke.value || '#000', strokeWidth: parseFloat(props.strokeWidth.value) || 0 };
+        // Default to visible colors (Black/Blue) instead of White
+        const fill = (!props.fill.value || props.fill.value.toLowerCase() === '#ffffff') ? '#000000' : props.fill.value;
+        
+        const base = { 
+            left: canvas.width / 2, 
+            top: canvas.height / 2, 
+            originX: 'center',
+            originY: 'center',
+            fill: fill, 
+            stroke: props.stroke.value || '#000', 
+            strokeWidth: parseFloat(props.strokeWidth.value) || 0 
+        };
+        
         if (type === 'rect') obj = new fabric.Rect({ ...base, width: 100, height: 100 });
         if (type === 'circle') obj = new fabric.Circle({ ...base, radius: 50 });
         if (type === 'text') obj = new fabric.IText('TYPE TEXT', { ...base, fontFamily: 'Outfit' });
-        if (type === 'line') obj = new fabric.Line([50, 50, 200, 200], { ...base, stroke: props.fill.value, strokeWidth: 4 });
+        if (type === 'line') obj = new fabric.Line([-50, 0, 50, 0], { ...base, stroke: fill, strokeWidth: 4 });
         if (type === 'curve') {
-            obj = new fabric.Path('M 0 0 Q 50 100 100 0', { 
+            obj = new fabric.Path('M -50 0 Q 0 -100 50 0', { 
                 ...base, 
                 fill: '', 
-                stroke: props.fill.value || '#3b82f6', 
+                stroke: fill, 
                 strokeWidth: 4 
             });
         }
